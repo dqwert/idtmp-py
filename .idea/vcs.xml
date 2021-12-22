@@ -3,6 +3,7 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/codetiming" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/eTAMP" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/pybullet_manipulator" vcs="Git" />
   </component>
 </project>

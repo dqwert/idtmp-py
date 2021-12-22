@@ -4,3 +4,6 @@
 [submodule "pybullet_manipulator"]
 	path = pybullet_manipulator
 	url = https://github.com/Drrreistein/pybullet_manipulator
+[submodule "eTAMP"]
+	path = eTAMP
+	url = https://github.com/ttianyuren/eTAMP
