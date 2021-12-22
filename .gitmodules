@@ -1,0 +1,6 @@
+[submodule "codetiming"]
+	path = codetiming
+	url = https://github.com/Drrreistein/codetiming
+[submodule "pybullet_manipulator"]
+	path = pybullet_manipulator
+	url = https://github.com/Drrreistein/pybullet_manipulator

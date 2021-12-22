@@ -37,7 +37,9 @@ class DomainSemantics(object):
         self.end_effector_link = pu.link_from_name(self.robot, pk.TOOL_FRAMES[pu.get_body_name(self.robot)])
 
         self.sdg_motioner = pk.sdg_plan_free_motion(self.robot, self.all_bodies)
-        sys.path.append('/home/lei/robotics/pybullet_manipulator/python')
+
+        # replace the path with your config path
+        sys.path.append('/home/wangqin/PycharmProjects/idtmp-py/pybullet_manipulator/python')
         from Robot import Robot
         from Kinematics import Kinematics
         rm=Robot(self.robot)
@@ -460,10 +462,12 @@ def simulation_plancache(visualization=1):
 if __name__=="__main__":
     # simulation()
 
-    simulation_plancache()
 
     visualization = bool(int(sys.argv[1]))
+
+    simulation_plancache(visualization)
+
     RESOLUTION = float(sys.argv[2])
     max_sim = int(sys.argv[3])
-    multi_sims(visualization)
+    # multi_sims(visualization)
 

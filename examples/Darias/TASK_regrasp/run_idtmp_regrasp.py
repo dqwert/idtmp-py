@@ -230,7 +230,7 @@ def multisim_plancache():
 
             # ------------------- motion plan ---------------------
             motion_refiner_timer.start()
-            res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache, feasible_checker)
+            res, m_plan, failed_step = tm.motion_planning(scn, t_plan, path_cache, feasible_checker)
             motion_refiner_timer.stop()
 
             scn.reset()

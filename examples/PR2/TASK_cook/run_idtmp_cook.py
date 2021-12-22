@@ -402,12 +402,11 @@ def SetState(scn, task_plan, motion_plan):
             for c in colors:
                 pu.set_color(scn.bd_body[body], c)
 
-def main():
+def main(visualization=True):
     tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
     mp_total_time = Timer(name='mp_total_time', text='', logger=logger.info)
     total_time = 0
 
-    visualization = True
     pu.connect(use_gui=visualization)
     scn = PlanningScenario()
     parser = PDDL_Parser()
