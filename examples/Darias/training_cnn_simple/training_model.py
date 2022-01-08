@@ -30,7 +30,6 @@ from tensorflow.keras import regularizers
 import pandas as pd
 from PIL import Image
 import random
-import random
 import time
 import sparse
 
@@ -109,7 +108,7 @@ def merge_csv(dirname):
     return np.array(dataset, dtype=float)
 
 class CustomGen(tf.keras.utils.Sequence):
-    def __init__(self, df:list, labels, pick_dir=[4], batch_size = 32, choose_ch2=2,dtype='tensorflow'):
+    def __init__(self, df:list, labels, pick_dir=[4], batch_size = 32, choose_ch2=2, dtype='tensorflow'):
         self.df = df
         self.labels = labels
         self.dtype = dtype
@@ -301,8 +300,8 @@ def get_data(dirname, num=100000, height=120):
 def read_image(dataset:dict, shape, downsampling, labels_ind=-5, scale=256):
     images_labels=dict()
     for k, v in dataset.items():
-        if not np.any(v[-10:]):
-            continue
+        # if not np.any(v[-10:]):
+        #     continue
         img_mat = np.asarray(Image.open(k+'.png'))
         if np.min(img_mat)>0:
             img_mat = img_mat - np.array(img_mat<2, dtype=np.uint8)
@@ -619,7 +618,6 @@ def get_data0(dirnames, num=100000, height=120):
 def plot_images(dirname, num):
     all_files = os.listdir(dirname)
     txt_files = []
-    png_names = []
     for f in all_files:
         if 'txt' in f:
             txt_files.append(f)
@@ -646,7 +644,6 @@ def plot_images(dirname, num):
 def png_to_vector(images):
     vectors = []
     for i in range(len(images)):
-        
         size_box1 = []
         size_box2 = None
         pos_box1 = None
@@ -831,7 +828,7 @@ def train_cnn_model(train_images, train_labels, validate_images, validate_labels
     test_gen = CustomGen(test_input, test_labels, pick_dir=[4], choose_ch2=2,batch_size=10, dtype='FV_CNN')
 
     input_shape = tuple(np.array(train_input[0][0].shape[1:]))
-    model = create_model_obj_centered(input_shape, filters=[8,16], filter_size=(3,3),pool_size=(2,2), stride=2, dense_layers=[100], dropout=0.)
+    model = create_model_obj_centered(input_shape, filters=[8,16], filter_size=(5,5),pool_size=(2,2), stride=2, dense_layers=[100], dropout=0.)
     model.compile(
         optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3),
         loss = tf.keras.losses.BinaryCrossentropy(from_logits=False),
@@ -1068,7 +1065,6 @@ def get_data_for_mlp(dirname, data_num='all',pick_dir=[4], duplicate=2, balance_
                 dataset = np.concatenate((dataset,np.loadtxt(os.path.join(dirname,f))), axis=0)
     if not data_num=='all':
         dataset = dataset[:data_num]
-
     if balance_dataset:
         args = np.argwhere(np.any(dataset[:,13:]==1, axis=1))
         dataset = dataset[args[:,0]]
@@ -1107,8 +1103,10 @@ def get_data_for_mlp(dirname, data_num='all',pick_dir=[4], duplicate=2, balance_
 def train_tf_mlp_model():
     # train_x, train_y, test_x, test_y = get_data_for_mlp('table_3d_')
     # train_x_1box, test_x_1box = train_x[:,:7], test_x[:,:7]
-    train, test  = get_data_for_mlp( 'table_3d_all_dir_no_rotZ/',  pick_dir='all', balance_dataset=True)
-    model = create_tf_mlp_model(train.shape[1]-1, neurons=[20, 20, 20])
+    train, test  = get_data_for_mlp( 'table_3d_all_dir_no_rotZ/', duplicate=2, 
+                                    pick_dir='all', balance_dataset=True)
+    neurons = 100
+    model = create_tf_mlp_model(train.shape[1]-1, neurons=[neurons,neurons,neurons], dropout=0)
     # model_1box = create_tf_mlp_model(train_x_1box.shape[1], neurons=[20,20,20])
     model.compile(
         optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3),
@@ -1116,8 +1114,8 @@ def train_tf_mlp_model():
         metrics = ['accuracy', 
                  tf.keras.metrics.Precision(name='P'),
                  tf.keras.metrics.Recall(name='R'),
-                 tf.keras.metrics.AUC(num_thresholds=100, curve='PR', name='AUC_PR'),
-                 tf.keras.metrics.AUC(num_thresholds=100, curve='ROC',name='AUC_ROC')
+                #  tf.keras.metrics.AUC(num_thresholds=100, curve='PR', name='AUC_PR'),
+                #  tf.keras.metrics.AUC(num_thresholds=100, curve='ROC',name='AUC_ROC')
                  ])
 
     # model_1box.compile(
@@ -1131,12 +1129,12 @@ def train_tf_mlp_model():
     #              ])
 
     # objected centered model
-    epochs=2
+    epochs = 2
     for i in range(10):
-        model.fit(train[:,:-1], train[:,-1], epochs=epochs, batch_size = 100, validation_data=(test[:,:-1],test[:,-1]))
+        history = model.fit(train[:,:-1], train[:,-1], epochs=epochs, batch_size = 64, validation_data=(test[:,:-1],test[:,-1]))
         # model_1box.fit(train_x_1box, train_y[:,4], epochs=epochs, batch_size = 100, validation_data=(test_x_1box,test_y[:,4]))
     # evaluate_cnn_model(model, test_images[test_data_len:], test_labels[test_data_len:], norm=True)
-        model.save(f"mlp_tf_dirall_{(i+1)*epochs}.model")
+        model.save(f"mlp_tf_dirall_1161_{(i+1)*epochs}.model")
         # model_1box.save(f"mlp_fv_dir4_1box{(i+1)*epochs}.model")
 
 def training_mlp_log_wandb():
@@ -1229,7 +1227,81 @@ def train_mlp_model(train, test):
         pickle.dump(clf_mlp, file)
     return clf_mlp
 
+def model_evaluation_vs_threshold_mlp(model, x,y):
+    """
+    model, tf model
+    x,
+    y,
 
+    return:
+        overall_acc,
+        false_positive_rate,
+        false_negative_rate,
+    """
+
+    data_length = len(y)
+    pred_y = model.predict(x)
+    pred_labels = np.array(pred_y >= np.array(list(range(1,10)))*0.1, dtype=int)
+    args_real_pos = np.argwhere(y==1)
+    args_real_neg = np.argwhere(y==0)
+
+    tp = np.sum(pred_labels[args_real_pos[:,0]] == np.array(y[args_real_pos], dtype=int), axis=0) / data_length
+    fn = len(args_real_pos) / data_length - tp
+
+    tn = np.sum(pred_labels[args_real_neg[:,0]] == np.array(y[args_real_neg], dtype=int), axis=0) / data_length
+    fp = len(args_real_neg) / data_length - tn
+
+    dat = {'true_feasible':tp,'true_infeasible':tn,'false_feasible':fp,'false_infeasible':fn}
+    return pd.DataFrame(dat)
+
+def model_evaluation_vs_threshold_cnn(model, data_gen):
+
+    """
+    model, tf model
+    x,
+    y,
+
+    return:
+        overall_acc,
+        false_positive_rate,
+        false_negative_rate,
+    """
+
+    y = []
+    pred_y = []
+    for i in range(data_gen.batch_num):
+        tmp_x, tmp_y = data_gen.__getitem__(i)
+        y += list(tmp_y)
+        pred_y += list(model.predict(tmp_x)[:,0])
+    y = np.array(y, dtype=np.int8)
+    data_length = len(y)
+
+    pred_y = np.array(pred_y).reshape((data_length, 1))
+
+    pred_labels = np.array(pred_y >= np.array(list(range(1,10)))*0.1, dtype=int)
+    args_real_pos = np.argwhere(y==1)
+    args_real_neg = np.argwhere(y==0)
+    
+    tp = np.sum(pred_labels[args_real_pos[:,0]] == np.array(y[args_real_pos], dtype=int), axis=0) / data_length
+    fn = len(args_real_pos) / data_length - tp
+
+    tn = np.sum(pred_labels[args_real_neg[:,0]] == np.array(y[args_real_neg], dtype=int), axis=0) / data_length
+    fp = len(args_real_neg) / data_length - tn
+
+    dat = {'true_feasible':tp,'true_infeasible':tn,'false_feasible':fp,'false_infeasible':fn}
+    return pd.DataFrame(dat)
+
+def merge_tf_history(h1, h2, force_merge=False):
+    if h1.keys() == h2.keys() or force_merge:
+        results = dict()
+        for k,v in h1.items():
+            try:
+                results[k] = v + h2[k]
+            except:
+                pass
+    else:
+        results = None
+    return results
 
 def save_model(model):
     with open("./svm_model.pk", 'wb') as file:
